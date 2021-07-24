@@ -59,13 +59,10 @@ fn map_headers(old_headers: &HeaderMap) -> HeaderMap {
     let mut new_headers = HeaderMap::new();
 
     for (key, value) in old_headers {
-        let include = match key.as_str() {
-            "connection" => false,
-            "keep-alive" => false,
-            "upgrade" => false,
-            "transfer-encoding" => false,
-            _ => true,
-        };
+        let include = !matches!(
+            key.as_str(),
+            "connection" | "keep-alive" | "upgrade" | "transfer-encoding"
+        );
 
         if include {
             new_headers.insert(key, value.clone());
