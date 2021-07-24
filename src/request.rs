@@ -4,7 +4,22 @@ use hyper::{
     body::{self, Bytes},
     Body, Client, Request,
 };
-use std::net::SocketAddr;
+use std::{env, net::SocketAddr};
+
+lazy_static! {
+    static ref TARGET_HOST: String = match env::var("TARGET_HOST") {
+        Ok(val) => val,
+        Err(_) => "server".to_string(),
+    };
+    static ref TARGET_PORT: u32 = match env::var("TARGET_PORT") {
+        Ok(val) => val.parse().unwrap(),
+        Err(_) => 80,
+    };
+    static ref TARGET_SCHEME: String = match env::var("TARGET_SCHEME") {
+        Ok(val) => val,
+        Err(_) => "http".to_string(),
+    };
+}
 
 async fn send(
     uri: &Uri,
@@ -12,11 +27,14 @@ async fn send(
     mut headers: HeaderMap,
     addr: SocketAddr,
 ) -> Response<Body> {
+    let authority = format!("{}:{}", TARGET_HOST.to_string(), TARGET_PORT.to_string());
+
     headers.insert("X-Forwarded-For", addr.ip().to_string().parse().unwrap());
-    headers.insert("host", "nexiumcore.com".parse().unwrap());
+    headers.insert("host", TARGET_HOST.parse().unwrap());
+
     let uri = Uri::builder()
-        .scheme("http")
-        .authority("nexiumcore.com")
+        .scheme(TARGET_SCHEME.as_str())
+        .authority(authority.as_str())
         .path_and_query(uri.path_and_query().unwrap().to_string())
         .build()
         .unwrap();
