@@ -5,3 +5,13 @@ authors = ["Nexium Team"]
 edition = "2018"
 
 [dependencies]
+h2 = "0.3.3"
+http = "0.2.4"
+tokio = { version = "1.9.0", features = [
+    "rt",
+    "rt-multi-thread",
+    "macros",
+    "net",
+] }
+tokio-rustls = "0.22.0"
+hyper = { version = "0.14", features = ["client", "http1", "runtime"] }
