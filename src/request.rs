@@ -1,8 +1,5 @@
 use http::{header::InvalidHeaderValue, uri::PathAndQuery, HeaderMap, Method, Response, Uri};
-use hyper::{
-    body::{self, Bytes},
-    Body, Client, Request,
-};
+use hyper::{Body, Client, Request};
 use std::{env, net::SocketAddr};
 use thiserror::Error;
 
@@ -21,13 +18,14 @@ lazy_static! {
     };
 }
 
-async fn send(
+pub async fn send(
     uri: &Uri,
     method: &Method,
-    mut headers: HeaderMap,
+    headers: &HeaderMap,
     addr: SocketAddr,
 ) -> Result<Response<Body>, RequestError> {
     let authority = format!("{}:{}", TARGET_HOST.to_string(), TARGET_PORT.to_string());
+    let mut headers = headers.clone();
 
     headers.insert("X-Forwarded-For", addr.ip().to_string().parse()?);
     headers.insert("host", TARGET_HOST.parse()?);
@@ -53,45 +51,12 @@ async fn send(
     Ok(client.request(req).await?)
 }
 
-pub async fn proxy(
-    uri: &Uri,
-    method: &Method,
-    headers: HeaderMap,
-    addr: SocketAddr,
-) -> Result<(Response<()>, Bytes), RequestError> {
-    let mut res = send(uri, method, headers, addr).await?;
-
-    let mut meta_builder = Response::builder().status(res.status());
-
-    let headers = meta_builder.headers_mut().unwrap();
-    map_headers(headers, res.headers());
-
-    let meta = meta_builder.body(())?;
-
-    Ok((meta, body::to_bytes(res.body_mut()).await?))
-}
-
-fn map_headers(headers: &mut HeaderMap, old_headers: &HeaderMap) {
-    for (key, value) in old_headers {
-        let include = !matches!(
-            key.as_str(),
-            "connection" | "keep-alive" | "upgrade" | "transfer-encoding"
-        );
-
-        if include {
-            headers.insert(key, value.clone());
-        }
-    }
-}
-
 #[derive(Error, Debug)]
 pub enum RequestError {
     #[error(transparent)]
     HyperError(#[from] hyper::Error),
     #[error(transparent)]
     HttpError(#[from] http::Error),
-    #[error(transparent)]
-    H2Error(#[from] h2::Error),
     #[error(transparent)]
     InvalidHeaderValue(#[from] InvalidHeaderValue),
 }

@@ -1,44 +1,50 @@
-use h2::server;
-use http::{Response, StatusCode};
-use tokio::net::TcpListener;
+use crate::request;
+use http::{Request, Response};
+use hyper::{server::conn::Http, service::service_fn, Body};
+use std::net::SocketAddr;
+use tokio::net::{TcpListener, TcpStream};
+use tokio_rustls::TlsAcceptor;
 
 pub async fn start() {
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     let acceptor = crate::tls::create_acceptor();
-    let listener = TcpListener::bind("0.0.0.0:8000").await.unwrap();
+
+    let listener = TcpListener::bind(addr)
+        .await
+        .expect("Failed to bind the socket!");
 
     loop {
-        if let Ok((socket, peer_addr)) = listener.accept().await {
-            let acceptor = acceptor.clone();
-
-            tokio::spawn(async move {
-                let socket = acceptor.accept(socket).await.unwrap();
-                let mut h2 = server::handshake(socket).await.unwrap();
-                while let Some(request) = h2.accept().await {
-                    let (request, mut respond) = request.unwrap();
-
-                    let res = crate::request::proxy(
-                        request.uri(),
-                        request.method(),
-                        request.headers().clone(),
-                        peer_addr,
-                    )
-                    .await;
-
-                    match res {
-                        Ok((meta, body)) => {
-                            let mut stream = respond.send_response(meta, false).unwrap();
-                            stream.send_data(body, true).unwrap();
-                        }
-                        Err(_) => {
-                            let meta = Response::builder()
-                                .status(StatusCode::BAD_GATEWAY)
-                                .body(())
-                                .unwrap();
-                            respond.send_response(meta, true).unwrap();
-                        }
-                    }
-                }
-            });
+        if let Ok((socket, addr)) = listener.accept().await {
+            match handle_connection(acceptor.clone(), socket, addr).await {
+                Err(e) => info!("Failed to handle connection: {}", e),
+                Ok(()) => (),
+            }
         }
     }
+}
+
+async fn handle_connection(
+    acceptor: TlsAcceptor,
+    socket: TcpStream,
+    addr: SocketAddr,
+) -> Result<(), std::io::Error> {
+    let socket = acceptor.accept(socket).await?;
+
+    tokio::spawn(async move {
+        if let Err(http_err) = Http::new()
+            .serve_connection(socket, service_fn(|req| proxy(req, addr)))
+            .await
+        {
+            info!("Error while serving HTTP connection: {}", http_err);
+        }
+    });
+
+    Ok(())
+}
+
+async fn proxy(
+    req: Request<Body>,
+    addr: SocketAddr,
+) -> Result<Response<Body>, request::RequestError> {
+    Ok(request::send(req.uri(), req.method(), req.headers(), addr).await?)
 }
