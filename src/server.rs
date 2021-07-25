@@ -1,4 +1,5 @@
 use h2::server;
+use http::{Response, StatusCode};
 use tokio::net::TcpListener;
 
 pub async fn start() {
@@ -13,16 +14,29 @@ pub async fn start() {
                 let socket = acceptor.accept(socket).await.unwrap();
                 let mut h2 = server::handshake(socket).await.unwrap();
                 while let Some(request) = h2.accept().await {
-                    let (request, respond) = request.unwrap();
+                    let (request, mut respond) = request.unwrap();
 
-                    crate::request::proxy(
-                        respond,
+                    let res = crate::request::proxy(
                         request.uri(),
                         request.method(),
                         request.headers().clone(),
                         peer_addr,
                     )
                     .await;
+
+                    match res {
+                        Ok((meta, body)) => {
+                            let mut stream = respond.send_response(meta, false).unwrap();
+                            stream.send_data(body, true).unwrap();
+                        }
+                        Err(_) => {
+                            let meta = Response::builder()
+                                .status(StatusCode::BAD_GATEWAY)
+                                .body(())
+                                .unwrap();
+                            respond.send_response(meta, true).unwrap();
+                        }
+                    }
                 }
             });
         }
