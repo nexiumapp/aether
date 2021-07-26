@@ -96,7 +96,7 @@ impl Kube {
             .metadata
             .annotations
             .get("kubernetes.io/ingress.class");
-        if class.is_none() || !class.unwrap().eq("aether".into()) {
+        if class.is_none() || !class.unwrap().eq("aether") {
             debug!(
                 "Received update from unrelated ingress `{:?}`, ignoring",
                 class
@@ -120,7 +120,7 @@ impl Kube {
             .metadata
             .annotations
             .get("kubernetes.io/ingress.class");
-        if class.is_none() || !class.unwrap().eq("aether".into()) {
+        if class.is_none() || !class.unwrap().eq("aether") {
             debug!("Received update from unrelated ingress, ignoring");
             return Ok(());
         }
