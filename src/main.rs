@@ -1,8 +1,9 @@
 #[macro_use]
-extern crate lazy_static;
-#[macro_use]
 extern crate log;
 
+use std::sync::Arc;
+
+mod kube;
 mod request;
 mod server;
 mod tls;
@@ -10,6 +11,12 @@ mod tls;
 #[tokio::main]
 pub async fn main() {
     env_logger::init();
+    let kube = Arc::new(kube::Kube::connect().await.unwrap());
 
-    server::start().await;
+    let kube_clone = kube.clone();
+    tokio::spawn(async move {
+        kube_clone.watch_ingress().await;
+    });
+
+    server::start(kube.clone()).await;
 }
