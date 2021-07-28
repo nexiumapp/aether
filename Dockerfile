@@ -24,8 +24,10 @@ RUN rm ./target/release/deps/aether*
 # Build it all for release.
 RUN cargo build --release
 
-# Build from the image.
-FROM debian:buster
+# Build from the slim image.
+FROM debian:buster-slim
+
+RUN apt-get update && apt-get install -y libssl1.1
 
 # Copy the binary from the base image.
 COPY --from=base /aether/target/release/aether .
