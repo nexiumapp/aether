@@ -24,8 +24,8 @@ RUN rm ./target/release/deps/aether*
 # Build it all for release.
 RUN cargo build --release
 
-# Build from the slim image.
-FROM debian:buster-slim
+# Build from the image.
+FROM debian:buster
 
 # Copy the binary from the base image.
 COPY --from=base /aether/target/release/aether .
