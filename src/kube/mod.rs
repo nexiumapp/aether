@@ -119,7 +119,7 @@ impl Kube {
     pub async fn get_cert(&self, host: &str) -> Option<CertifiedKey> {
         let kube = self.certificates.read().await;
 
-        kube.get(host).map(|key| key.clone())
+        kube.get(host).cloned()
     }
 
     async fn set_ingress(
@@ -181,7 +181,7 @@ impl Kube {
         }
 
         let hosts = match secret.metadata.annotations.get("aether.rs/hosts") {
-            Some(hosts) => hosts.split(","),
+            Some(hosts) => hosts.split(','),
             None => {
                 debug!(
                     "TLS secret {:?} does not have an hosts annotation.",
@@ -234,7 +234,7 @@ impl Kube {
         }
 
         let hosts = match secret.metadata.annotations.get("aether.rs/hosts") {
-            Some(hosts) => hosts.split(","),
+            Some(hosts) => hosts.split(','),
             None => {
                 debug!(
                     "TLS secret {:?} does not have an hosts annotation.",
