@@ -7,7 +7,7 @@ use tokio_rustls::TlsAcceptor;
 
 pub async fn start(kube: Arc<Kube>) {
     let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
-    let acceptor = crate::tls::create_acceptor();
+    let acceptor = crate::tls::create_acceptor(kube.clone());
 
     let listener = TcpListener::bind(addr)
         .await

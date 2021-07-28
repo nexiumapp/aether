@@ -18,5 +18,10 @@ pub async fn main() {
         kube_clone.watch_ingress().await;
     });
 
+    let kube_clone = kube.clone();
+    tokio::spawn(async move {
+        kube_clone.watch_certificates().await;
+    });
+
     server::start(kube.clone()).await;
 }

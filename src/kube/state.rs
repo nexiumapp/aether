@@ -120,3 +120,15 @@ pub enum IngressParseError {
     #[error("Ingress rule misses the path.")]
     MissingPath,
 }
+
+#[derive(Error, Debug)]
+pub enum SecretParseError {
+    #[error("Watch error: {0}")]
+    WatchError(ErrorResponse),
+    #[error("The secret did not contain the certificate/key.")]
+    NoSecretData,
+    #[error("The private key was not in PKCS/8 format.")]
+    InvalidPrivateKey,
+    #[error("The certificate was in an invalid format.")]
+    InvalidCertificate,
+}
