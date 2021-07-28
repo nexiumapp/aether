@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aether-ingress
+  labels:
+    app: aether-ingress
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aether-ingress
+  template:
+    metadata:
+      labels:
+        app: aether-ingress
+    spec:
+      serviceAccountName: aether
+      containers:
+        - name: accounts
+          image: ghcr.io/nexiumapp/aether:93a8bb0
+          ports:
+            - containerPort: 8000
+          env:
+            - name: RUST_LOG
+              value: "debug"
