@@ -15,7 +15,7 @@ Now you can run this command to install the ingress provider.
 It will create an External Loadbalancer, which will be managed by the ingress.
 
 ```
-helm install aether . -n aether
+helm install aether . -n aether --create-namespace
 ```
 
 ### Creating the ingress.
