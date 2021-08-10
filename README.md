@@ -90,20 +90,7 @@ kubectl annotate secrets ingress-secret aether.rs/hosts=example.com,aether.rs
 
 `cert-manager` is an Kubernetes certificate manager, and can be used to provide certificates to Aether.
 First follow the installation guide on [the website](https://cert-manager.io/docs/installation/).
-
-As Aether TLS is configured with annotations, we need to create an secret with the annotations added.
-`cert-manager` will then update the secret later with the correct value.
-There is currently an issue open to make this easier, see [this issue](https://github.com/jetstack/cert-manager/pull/3828) on `cert-manager`.
-
-```yml
-apiVersion: v1
-kind: Secret
-type: kubernetes.io/tls
-metadata:
-  name: cert-example.com
-  annotations:
-    aether.rs/hosts: "example.com"
-```
+At least version 1.5.0 is required here, otherwise the annotations will not work.
 
 Now you can configure `cert-manager` according to [the documentation](https://cert-manager.io/docs/configuration/).
 If you are using ACME, please make sure you are using the `DNS01` challenge, as `HTTP01` will not work.
@@ -138,6 +125,8 @@ stringData:
 ```
 
 And then create the certificate, make sure to match the name to the secret created before.
+Note the secretTemplate at the end of the specs, this will define for which hosts the certificate will be used.
+This should be a comma separated list of hosts.
 
 ```yml
 apiVersion: cert-manager.io/v1
@@ -154,6 +143,9 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: Issuer
+  secretTemplate:
+    annotations:
+      aether.rs/hosts: "example.com,aether.rs"
 ```
 
 This should create the certificate and you should now be able to use the ingress.
